@@ -4,6 +4,7 @@ const cors = require("cors");
 const connectDB = require("./config/db");
 
 const authRoutes = require("./routes/authRoutes");
+const jobsRoutes = require("./routes/jobRoutes");
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(express.json());
 
 // routes
 app.use("/api/auth", authRoutes);
+app.use("/api/jobs", jobsRoutes);
 
 // start server
 const PORT = process.env.PORT || 5000;
