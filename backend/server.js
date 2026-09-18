@@ -6,6 +6,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const jobsRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
+const savedJobsRoutes = require("./routes/savedJobsRoutes");
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/save-jobs", savedJobsRoutes);
 
 // start server
 const PORT = process.env.PORT || 5000;

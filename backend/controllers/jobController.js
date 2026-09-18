@@ -1,4 +1,6 @@
 const Job = require("../models/Job");
+const Application = require("../models/Application");
+const SavedJob = require("../models/SavedJob");
 
 // @desc create a new job (employer only)
 const createJob = async (req, res) => {
@@ -16,7 +18,7 @@ const createJob = async (req, res) => {
 
 // @desc get all jobs
 const getJobs = async (req, res) => {
-  const { keyword, location, category, type, minSalary, maxSalary } =
+  const { keyword, location, category, type, minSalary, maxSalary, userId } =
     req.query;
 
   const query = {
@@ -43,13 +45,42 @@ const getJobs = async (req, res) => {
       "company",
       "name companyName companyLogo"
     );
-    res.json(jobs);
+
+    let savedJobIds = [];
+    let appliedJobStatusMap = {};
+
+    if (userId) {
+      // saved jobs
+      const savedJobs = await SavedJob.find({ jobseeker: userId }).select(
+        "job"
+      );
+      savedJobIds = savedJobs.map((s) => String(s.job));
+
+      // Applications
+      const applications = await Application.find({ applicant: userId }).select(
+        "job status"
+      );
+      applications.forEach((app) => {
+        appliedJobStatusMap[String(app.job)] = app.status;
+      });
+    }
+
+    // add isSaved and applicationStatus to each job
+    const jobWithExtras = jobs.map((job) => {
+      const jobIdStr = String(job._id);
+      return {
+        ...job.toObject(),
+        isSaved: savedJobIds.includes(jobIdStr),
+        applicationStatus: appliedJobStatusMap[jobIdStr] || null,
+      };
+    });
+    res.json(jobWithExtras);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc get jobs posted by the logged in employer
+// @desc get jobs for logged In user (employer can see posted jobs)
 const getJobsEmployer = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -59,11 +90,25 @@ const getJobsEmployer = async (req, res) => {
       return res.status(403).json({ message: "Access Denied" });
     }
 
+    // get all posted jobs by employer
     const jobs = await Job.find({ company: userId })
       .populate("company", "name companyName companyLogo")
-      .lean();
+      .lean(); // lean() makes jobs plain js objects so we can add new fields
 
-    res.json(jobs);
+    // count applications for each job
+    const jobWithApplicationCounts = await Promise.all(
+      jobs.map(async (job) => {
+        const applicationCount = await Application.countDocuments({
+          job: job._id,
+        });
+        return {
+          ...job,
+          applicationCount,
+        };
+      })
+    );
+
+    res.json(jobWithApplicationCounts);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -72,6 +117,8 @@ const getJobsEmployer = async (req, res) => {
 // @desc get single job by ID
 const getJobById = async (req, res) => {
   try {
+    const { userId } = req.query;
+
     const job = await Job.findById(req.params.id).populate(
       "company",
       "name companyName companyLogo"
@@ -79,7 +126,23 @@ const getJobById = async (req, res) => {
 
     if (!job) return res.status(404).json({ message: "Job not found" });
 
-    res.json(job);
+    let applicationStatus = null;
+
+    if (userId) {
+      const application = await Application.findOne({
+        job: job._id,
+        applicant: userId,
+      }).select("status");
+
+      if (application) {
+        applicationStatus = application.status;
+      }
+    }
+
+    res.json({
+      ...job.toObject(),
+      applicationStatus,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
