@@ -1,8 +1,32 @@
+import React from "react";
+import { Toaster } from "react-hot-toast";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+import { AuthProvider } from "./context/AuthContext";
+
 const App = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <h1 className="text-2xl font-bold">JobPortal</h1>
-    </div>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Catch All Route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+      <Toaster
+        toastOptions={{
+          className: "",
+          style: {
+            fontSize: "13px",
+          },
+        }}
+      />
+    </AuthProvider>
   );
 };
 
