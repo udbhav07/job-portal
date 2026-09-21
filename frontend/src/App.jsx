@@ -7,6 +7,7 @@ import {
   Navigate,
 } from "react-router-dom";
 
+import LandingPage from "./pages/LandingPage/LandingPage";
 import Login from "./pages/Auth/Login";
 import SignUp from "./pages/Auth/SignUp";
 import { AuthProvider } from "./context/AuthContext";
@@ -17,6 +18,7 @@ const App = () => {
       <Router>
         <Routes>
           {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
 
