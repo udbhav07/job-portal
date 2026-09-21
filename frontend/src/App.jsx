@@ -7,6 +7,8 @@ import {
   Navigate,
 } from "react-router-dom";
 
+import Login from "./pages/Auth/Login";
+import SignUp from "./pages/Auth/SignUp";
 import { AuthProvider } from "./context/AuthContext";
 
 const App = () => {
@@ -14,6 +16,10 @@ const App = () => {
     <AuthProvider>
       <Router>
         <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+
           {/* Catch All Route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
