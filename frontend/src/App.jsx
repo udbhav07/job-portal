@@ -11,6 +11,8 @@ import LandingPage from "./pages/LandingPage/LandingPage";
 import Login from "./pages/Auth/Login";
 import SignUp from "./pages/Auth/SignUp";
 import JobSeekerDashboard from "./pages/JobSeeker/JobSeekerDashboard";
+import JobDetails from "./pages/JobSeeker/JobDetails";
+import SavedJobs from "./pages/JobSeeker/SavedJobs";
 import { AuthProvider } from "./context/AuthContext";
 
 const App = () => {
@@ -23,6 +25,8 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/find-jobs" element={<JobSeekerDashboard />} />
+          <Route path="/job/:jobId" element={<JobDetails />} />
+          <Route path="/saved-jobs" element={<SavedJobs />} />
 
           {/* Catch All Route */}
           <Route path="*" element={<Navigate to="/" replace />} />
