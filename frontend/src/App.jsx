@@ -13,6 +13,7 @@ import SignUp from "./pages/Auth/SignUp";
 import JobSeekerDashboard from "./pages/JobSeeker/JobSeekerDashboard";
 import JobDetails from "./pages/JobSeeker/JobDetails";
 import SavedJobs from "./pages/JobSeeker/SavedJobs";
+import UserProfile from "./pages/JobSeeker/UserProfile";
 import { AuthProvider } from "./context/AuthContext";
 
 const App = () => {
@@ -27,6 +28,7 @@ const App = () => {
           <Route path="/find-jobs" element={<JobSeekerDashboard />} />
           <Route path="/job/:jobId" element={<JobDetails />} />
           <Route path="/saved-jobs" element={<SavedJobs />} />
+          <Route path="/profile" element={<UserProfile />} />
 
           {/* Catch All Route */}
           <Route path="*" element={<Navigate to="/" replace />} />
