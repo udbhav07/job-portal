@@ -1,10 +1,12 @@
-export const BASE_URL = "http://localhost:7999";
+// Vite exposes VITE_* variables from frontend/.env as import.meta.env
+export const BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:7999";
 
 export const API_PATHS = {
   AUTH: {
     REGISTER: "/api/auth/register",
     LOGIN: "/api/auth/login",
-    GET_PROFILE: "/api/auth/profile",
+    GET_PROFILE: "/api/auth/me",
     UPDATE_PROFILE: "/api/user/profile",
     DELETE_RESUME: "/api/user/resume",
   },

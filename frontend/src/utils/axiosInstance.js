@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BASE_URL } from "./apiPaths";
+import { API_PATHS, BASE_URL } from "./apiPaths";
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -32,9 +32,19 @@ axiosInstance.interceptors.response.use(
   (error) => {
     // handle common errors globally
     if (error.response) {
-      if (error.response.status === 401) {
-        // redirect to login page
-        window.location.href = "/";
+      const url = error.config?.url || "";
+      const isAuthRequest =
+        url.includes(API_PATHS.AUTH.LOGIN) ||
+        url.includes(API_PATHS.AUTH.REGISTER);
+
+      // session expired or invalid: clear it and send the user to login.
+      // login/register 401s are wrong credentials, so let the page show them
+      if (error.response.status === 401 && !isAuthRequest) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
       } else if (error.response.status === 500) {
         console.error("Server Error, please try again later");
       }

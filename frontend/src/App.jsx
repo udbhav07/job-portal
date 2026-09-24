@@ -14,12 +14,12 @@ import JobSeekerDashboard from "./pages/JobSeeker/JobSeekerDashboard";
 import JobDetails from "./pages/JobSeeker/JobDetails";
 import SavedJobs from "./pages/JobSeeker/SavedJobs";
 import UserProfile from "./pages/JobSeeker/UserProfile";
+import ProtectedRoute from "./routes/ProtectedRoute";
 import EmployerDashboard from "./pages/Employer/EmployerDashboard";
 import JobPostingForm from "./pages/Employer/JobPostingForm";
-import ManageJobs from "./pages/Employer/ManageJobs";
 import ApplicationViewer from "./pages/Employer/ApplicationViewer";
+import ManageJobs from "./pages/Employer/ManageJobs";
 import EmployerProfilePage from "./pages/Employer/EmployerProfilePage";
-import ProtectedRoute from "./routes/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 
 const App = () => {
@@ -31,12 +31,17 @@ const App = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+
           <Route path="/find-jobs" element={<JobSeekerDashboard />} />
           <Route path="/job/:jobId" element={<JobDetails />} />
-          <Route path="/saved-jobs" element={<SavedJobs />} />
-          <Route path="/profile" element={<UserProfile />} />
 
-          {/* Protected Routes */}
+          {/* Job seeker Routes */}
+          <Route element={<ProtectedRoute requiredRole="jobseeker" />}>
+            <Route path="/saved-jobs" element={<SavedJobs />} />
+            <Route path="/profile" element={<UserProfile />} />
+          </Route>
+
+          {/* Employer Routes */}
           <Route element={<ProtectedRoute requiredRole="employer" />}>
             <Route path="/employer-dashboard" element={<EmployerDashboard />} />
             <Route path="/post-job" element={<JobPostingForm />} />

@@ -1,3 +1,4 @@
+import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Mail,
@@ -18,7 +19,6 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: "",
   });
 
   const [formState, setFormState] = useState({
@@ -27,7 +27,7 @@ const Login = () => {
     showPassword: false,
     success: false,
   });
-  const { login, user } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -74,7 +74,6 @@ const Login = () => {
       const response = await axiosInstance.post(API_PATHS.AUTH.LOGIN, {
         email: formData.email,
         password: formData.password,
-        rememberMe: formData.rememberMe,
       });
 
       setFormState((prev) => ({
@@ -95,13 +94,6 @@ const Login = () => {
             role === "employer" ? "/employer-dashboard" : "/find-jobs";
         }, 2000);
       }
-
-      // redirects based on user role
-      setTimeout(() => {
-        const redirectPath =
-          user.role === "employer" ? "/employer-dashboard" : "/find-jobs";
-        window.location.href = redirectPath;
-      }, 1500);
     } catch (error) {
       setFormState((prev) => ({
         ...prev,
@@ -114,6 +106,16 @@ const Login = () => {
       }));
     }
   };
+
+  // already logged in: go straight to the right home page
+  if (isAuthenticated && user && !formState.success) {
+    return (
+      <Navigate
+        to={user.role === "employer" ? "/employer-dashboard" : "/find-jobs"}
+        replace
+      />
+    );
+  }
 
   if (formState.success) {
     return (
