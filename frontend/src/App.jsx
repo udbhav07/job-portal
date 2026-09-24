@@ -17,6 +17,7 @@ import UserProfile from "./pages/JobSeeker/UserProfile";
 import EmployerDashboard from "./pages/Employer/EmployerDashboard";
 import JobPostingForm from "./pages/Employer/JobPostingForm";
 import ManageJobs from "./pages/Employer/ManageJobs";
+import ApplicationViewer from "./pages/Employer/ApplicationViewer";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -39,6 +40,7 @@ const App = () => {
             <Route path="/employer-dashboard" element={<EmployerDashboard />} />
             <Route path="/post-job" element={<JobPostingForm />} />
             <Route path="/manage-jobs" element={<ManageJobs />} />
+            <Route path="/applicants" element={<ApplicationViewer />} />
           </Route>
 
           {/* Catch All Route */}
