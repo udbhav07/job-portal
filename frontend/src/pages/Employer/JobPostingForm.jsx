@@ -157,27 +157,29 @@ const JobPostingForm = () => {
 
         if (jobData) {
           setFormData({
-            jobTitle: jobData.title,
-            location: jobData.location,
-            category: jobData.category,
-            jobType: jobData.type,
-            description: jobData.description,
-            requirements: jobData.requirements,
-            salaryMin: jobData.salaryMin,
-            salaryMax: jobData.salaryMax,
+            jobTitle: jobData.title || "",
+            location: jobData.location || "",
+            category: jobData.category || "",
+            jobType: jobData.type || "",
+            description: jobData.description || "",
+            requirements: jobData.requirements || "",
+            salaryMin: jobData.salaryMin ?? "",
+            salaryMax: jobData.salaryMax ?? "",
           });
         }
       } catch (error) {
-        console.error("Error fetching job details");
-        if (error.response) {
-          error("API Error", error.response.data.message);
-        }
+        console.error(
+          "Error fetching job details:",
+          error.response?.data?.message || error.message
+        );
+        toast.error("Could not load this job for editing");
       }
     };
 
-    fetchJobDetails();
+    // only an edit has an existing job to load
+    if (jobId) fetchJobDetails();
     return () => {};
-  }, []);
+  }, [jobId]);
 
   if (isPreview) {
     return (

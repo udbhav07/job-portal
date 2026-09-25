@@ -6,7 +6,6 @@ import axiosInstance from "../../utils/axiosInstance";
 import moment from "moment";
 import toast from "react-hot-toast";
 import StatusBadge from "../StatusBadge";
-import "../../index.css"
 
 const statusOptions = ["Applied", "In Review", "Rejected", "Accepted"];
 
@@ -37,6 +36,9 @@ const ApplicantProfilePreview = ({
       }
     } catch (error) {
       console.error("Error updating status:", error);
+      toast.error(
+        error.response?.data?.message || "Could not update the status"
+      );
       // Optionally revert status if failed
       setCurrentStatus(selectedApplicant.status);
     } finally {
@@ -45,7 +47,7 @@ const ApplicantProfilePreview = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-[rgba(0,0,0,0.2)] bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/20 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto hide-scrollbar">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -113,7 +115,9 @@ const ApplicantProfilePreview = ({
             {/*  */}
             <button
               onClick={() =>
-                handleDownloadResume(selectedApplicant.applicant.resume)
+                handleDownloadResume(
+                  selectedApplicant.applicant.resume || selectedApplicant.resume
+                )
               }
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-teal-700 text-white font-medium rounded-full hover:bg-teal-800 transition-colors cursor-pointer"
             >

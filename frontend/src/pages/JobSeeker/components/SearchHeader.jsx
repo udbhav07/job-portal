@@ -1,6 +1,6 @@
 import { MapPin, Search } from "../../../utils/icons";
 
-const SearchHeader = ({ filters, handleFilterChange }) => {
+const SearchHeader = ({ filters, handleFilterChange, onSearch }) => {
   return (
     <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl shadow-gray-200 border border-white/20 p-4 lg:p-8 mb-6 lg:mb-8">
       <div className="flex flex-col gap-4 lg:gap-6">
@@ -19,6 +19,7 @@ const SearchHeader = ({ filters, handleFilterChange }) => {
               type="text"
               value={filters.keyword}
               onChange={(e) => handleFilterChange("keyword", e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSearch?.()}
               placeholder="Job title, company, or keywords"
               className="w-full pl-12 pr-4 py-2 lg:py-2.5 border border-gray-200 rounded-xl lg:rounded-xl outline-0 text-base bg-white/50 backdrop-blur-sm"
             />
@@ -29,11 +30,15 @@ const SearchHeader = ({ filters, handleFilterChange }) => {
               type="text"
               value={filters.location}
               onChange={(e) => handleFilterChange("location", e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSearch?.()}
               placeholder="location"
               className="w-full pl-12 pr-4 py-2 lg:py-2.5 border border-gray-200 rounded-xl lg:rounded-xl outline-0 text-base bg-white/50 backdrop-blur-sm"
             />
           </div>
-          <button className="bg-teal-600 text-white px-6 lg:px-10 py-3 lg:py-2.5 rounded-full hover:bg-teal-800 transition-all duration-200 font-semibold text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 cursor-pointer">
+          <button
+            type="button"
+            onClick={() => onSearch?.()}
+            className="bg-teal-600 text-white px-6 lg:px-10 py-3 lg:py-2.5 rounded-full hover:bg-teal-800 transition-all duration-200 font-semibold text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 cursor-pointer">
             Search Jobs
           </button>
         </div>

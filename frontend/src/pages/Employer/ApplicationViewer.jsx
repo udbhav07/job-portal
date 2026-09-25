@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Users,
   Calendar,
@@ -16,6 +16,7 @@ import { getInitials } from "../../utils/helper";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import ApplicantProfilePreview from "../../components/cards/ApplicantProfilePreview";
+import toast from "react-hot-toast";
 
 const ApplicationViewer = () => {
   const location = useLocation();
@@ -27,7 +28,7 @@ const ApplicationViewer = () => {
   const [loading, setLoading] = useState(false);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
 
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get(
@@ -39,16 +40,17 @@ const ApplicationViewer = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [jobId]);
 
   useEffect(() => {
     if (jobId) fetchApplications();
     else navigate("/manage-jobs");
-  }, []);
+  }, [jobId, fetchApplications, navigate]);
 
   // group applications by job
   const groupedApplications = useMemo(() => {
-    const filtered = applications.filter((app) => app.job.title.toLowerCase());
+    // skip applications whose job or applicant no longer exists
+    const filtered = applications.filter((app) => app?.job && app?.applicant);
 
     return filtered.reduce((acc, app) => {
       const jobId = app.job._id;
@@ -64,7 +66,11 @@ const ApplicationViewer = () => {
   }, [applications]);
 
   const handleDownloadResume = (resumeUrl) => {
-    window.open(resumeUrl, "_blank");
+    if (!resumeUrl) {
+      toast.error("This applicant hasn't uploaded a resume");
+      return;
+    }
+    window.open(resumeUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -97,7 +103,7 @@ const ApplicationViewer = () => {
         </div>
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-0 pb-8">
-          {Object.keys(groupedApplications).length === 0 ? (
+          {loading ? null : Object.keys(groupedApplications).length === 0 ? (
             // empty state
             <div className="text-center py-16">
               <Users className="mx-auto h-24 w-24 text-gray-300" />
@@ -196,7 +202,8 @@ const ApplicationViewer = () => {
                               <button
                                 onClick={() =>
                                   handleDownloadResume(
-                                    application.applicant.resume
+                                    application.applicant.resume ||
+                                      application.resume
                                   )
                                 }
                                 className="inline-flex items-center gap-2 px-3 py-2 bg-teal-700 text-white text-sm font-medium rounded-full hover:bg-teal-800 transition-colors"

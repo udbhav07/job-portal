@@ -1,8 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const SalaryRangeSlider = ({ filters, handleFilterChange }) => {
   const [minSalary, setMinSalary] = useState(filters?.minSalary || 0);
   const [maxSalary, setMaxSalary] = useState(filters?.maxSalary || 0);
+
+  // keep the inputs in sync when filters change elsewhere (e.g. "Clear All")
+  useEffect(() => {
+    setMinSalary(filters?.minSalary || 0);
+    setMaxSalary(filters?.maxSalary || 0);
+  }, [filters?.minSalary, filters?.maxSalary]);
 
   return (
     <div className="space-y-4">
@@ -52,8 +58,8 @@ const SalaryRangeSlider = ({ filters, handleFilterChange }) => {
       {/* display current range */}
       {minSalary || maxSalary ? (
         <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded">
-          Range: {minSalary ? `\u20B9${minSalary.toLocaleString()}` : `$0`} -{" "}
-          {maxSalary ? `\u20B9${maxSalary.toLocaleString()}` : `No limit`}
+          Range: {minSalary ? `\u20B9${Number(minSalary).toLocaleString("en-IN")}` : `\u20B90`} -{" "}
+          {maxSalary ? `\u20B9${Number(maxSalary).toLocaleString("en-IN")}` : `No limit`}
         </div>
       ) : null}
       <p className="text-xs text-red-500 text-center">

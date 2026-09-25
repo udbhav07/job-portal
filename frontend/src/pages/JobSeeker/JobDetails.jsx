@@ -1,9 +1,9 @@
 import { MapPin, IndianRupee, Building2, Clock, Users } from "../../utils/icons";
 import { useAuth } from "../../context/AuthContext";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Navbar from "../../components/layouts/Navbar";
 import moment from "moment";
 import StatusBadge from "../../components/StatusBadge";
@@ -13,24 +13,29 @@ import { formatINR } from "../../utils/helper";
 const JobDetails = () => {
   const { user } = useAuth();
   const { jobId } = useParams();
+  const navigate = useNavigate();
 
   const [jobDetails, setJobDetails] = useState(null);
+  const [status, setStatus] = useState("loading"); // loading | ready | notFound
 
-  const getJobDetailById = async () => {
+  const getJobDetailById = useCallback(async () => {
     try {
       const response = await axiosInstance.get(
-        API_PATHS.JOBS.GET_JOB_BY_ID(jobId),
-        {
-          params: { userId: user?._id || null },
-        }
+        API_PATHS.JOBS.GET_JOB_BY_ID(jobId)
       );
       setJobDetails(response.data);
+      setStatus("ready");
     } catch (error) {
       console.error("Fetching Job Details:", error);
+      setStatus("notFound");
     }
-  };
+  }, [jobId]);
 
   const applyToJob = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
     try {
       if (jobId) {
         await axiosInstance.post(API_PATHS.APPLICATIONS.APPLY_TO_JOB(jobId));
@@ -44,17 +49,38 @@ const JobDetails = () => {
     }
   };
 
+  // refetch when the user logs in/out so the application status is current
+  const userId = user?._id;
   useEffect(() => {
-    if (jobId && user) {
+    if (jobId) {
       getJobDetailById();
     }
-  }, [jobId, user]);
+  }, [jobId, userId, getJobDetailById]);
 
   return (
-    <div className="bg-teal-50">
+    <div className="bg-teal-50 min-h-screen">
       <Navbar />
 
-      <div className="container mx-auto pt-24">
+      <div className="container mx-auto pt-24 px-4 pb-10">
+        {status === "loading" && (
+          <p className="text-center text-gray-500 py-20">Loading job...</p>
+        )}
+        {status === "notFound" && (
+          <div className="bg-white p-10 rounded-lg text-center">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              Job not found
+            </h2>
+            <p className="text-gray-600 mb-6">
+              This job may have been removed by the employer.
+            </p>
+            <button
+              onClick={() => navigate("/find-jobs")}
+              className="bg-teal-700 text-white px-6 py-2.5 rounded-full font-semibold hover:bg-teal-800 cursor-pointer"
+            >
+              Browse jobs
+            </button>
+          </div>
+        )}
         {/* Main content card */}
         {jobDetails && (
           <div className="bg-white p-6 rounded-lg">
@@ -89,13 +115,19 @@ const JobDetails = () => {
                   {/* Apply Now button */}
                   {jobDetails?.applicationStatus ? (
                     <StatusBadge status={jobDetails?.applicationStatus} />
+                  ) : jobDetails?.isClosed ? (
+                    <span className="px-3 py-1 rounded text-sm font-medium bg-gray-100 text-gray-700">
+                      Closed
+                    </span>
                   ) : (
+                    user?.role !== "employer" && (
                     <button
                       onClick={applyToJob}
                       className="bg-teal-50 text-sm text-teal-800 hover:text-white px-6 py-2.5 rounded-full hover:bg-teal-600 transition-all duration-200 font-semibold transform hover:-translate-y-0.5 cursor-pointer"
                     >
                       Apply Now
                     </button>
+                    )
                   )}
                 </div>
                 {/* Tags*/}

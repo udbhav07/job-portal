@@ -18,7 +18,8 @@ const SavedJobs = () => {
   const getSavedJobs = async () => {
     try {
       const response = await axiosInstance.get(API_PATHS.JOBS.GET_SAVED_JOBS);
-      setSavedJobList(response.data);
+      // skip entries whose job has since been deleted
+      setSavedJobList((response.data || []).filter((saved) => saved?.job));
     } catch (error) {
       console.error("Error Fetching Job Details:", error);
     }
@@ -30,6 +31,7 @@ const SavedJobs = () => {
       toast.success("Job removed successfully");
       getSavedJobs();
     } catch (error) {
+      console.error("Error removing saved job:", error);
       toast.error("Something went wrong, Try again later");
     }
   };

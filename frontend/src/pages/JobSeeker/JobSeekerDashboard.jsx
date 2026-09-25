@@ -58,7 +58,6 @@ const JobSeekerDashboard = () => {
       if (filterParams.type) params.append("type", filterParams.type);
       if (filterParams.category)
         params.append("category", filterParams.category);
-      if (user) params.append("userId", user?._id);
 
       const response = await axiosInstance.get(
         `${API_PATHS.JOBS.GET_ALL_JOBS}?${params.toString()}`
@@ -88,8 +87,6 @@ const JobSeekerDashboard = () => {
         maxSalary: filters.maxSalary,
         category: filters.category,
         type: filters.type,
-        experience: filters.experience,
-        remoteOnly: filters.remoteOnly,
       };
 
       // only calls api if there are meaningful filters
@@ -139,7 +136,10 @@ const JobSeekerDashboard = () => {
         onClick={() => setShowMobileFilters(false)}
         className="fixed inset-0 bg-black/50"
       >
-        <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-xl ">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-xl "
+        >
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <h3 className="font-bold text-gray-900 text-lg">Filters</h3>
             <button
@@ -164,6 +164,10 @@ const JobSeekerDashboard = () => {
   );
 
   const toggleSaveJob = async (jobId, isSaved) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
     try {
       if (isSaved) {
         await axiosInstance.delete(API_PATHS.JOBS.UNSAVE_JOB(jobId));
@@ -172,7 +176,7 @@ const JobSeekerDashboard = () => {
         await axiosInstance.post(API_PATHS.JOBS.SAVE_JOB(jobId));
         toast.success("Job saved successfully");
       }
-      fetchJobs();
+      fetchJobs(filters);
     } catch (error) {
       console.log("Error:", error);
       toast.error("Something went wrong!, please try again later");
@@ -180,12 +184,16 @@ const JobSeekerDashboard = () => {
   };
 
   const applyToJob = async (jobId) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
     try {
       if (jobId) {
         await axiosInstance.post(API_PATHS.APPLICATIONS.APPLY_TO_JOB(jobId));
         toast.success("Applied to job successfully");
       }
-      fetchJobs();
+      fetchJobs(filters);
     } catch (error) {
       console.log("Error:", error);
       const errMsg = error?.response?.data?.message;
@@ -206,6 +214,7 @@ const JobSeekerDashboard = () => {
           <SearchHeader
             filters={filters}
             handleFilterChange={handleFilterChange}
+            onSearch={() => fetchJobs(filters)}
           />
           <div className="flex gap-6 lg:gap-8">
             {/* Desktop Sidebar filter */}
@@ -281,7 +290,7 @@ const JobSeekerDashboard = () => {
                     No jobs found
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    Try adjusting your search criteria or filters
+                    {error || "Try adjusting your search criteria or filters"}
                   </p>
                   <button
                     onClick={clearAllFilters}

@@ -34,7 +34,7 @@ const Navbar = () => {
 
           {/* Auth Button */}
           <div className="flex items-center space-x-3">
-            {user && (
+            {user?.role === "jobseeker" && (
               <button onClick={() => navigate("/saved-jobs")} 
               className="p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200 relative cursor-pointer">
                 <Bookmark className="h-5 w-5 text-gray-500" />

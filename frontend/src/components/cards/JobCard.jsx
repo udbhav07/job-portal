@@ -38,8 +38,10 @@ const JobCard = ({ job, onClick, onToggleSave, onApply, saved, hideApply }) => {
       return `\u20B9${num}`;
     };
 
+    if (!min && !max) return "Salary not disclosed";
+
     // Convert annual to monthly
-    const monthlyMin = min / 12;
+    const monthlyMin = (min || 0) / 12;
     const monthlyMax = max ? max / 12 : null;
 
     if (monthlyMax) {
@@ -77,7 +79,7 @@ const JobCard = ({ job, onClick, onToggleSave, onApply, saved, hideApply }) => {
             </p>
           </div>
         </div>
-        {user && (
+        {user?.role === "jobseeker" && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -138,7 +140,8 @@ const JobCard = ({ job, onClick, onToggleSave, onApply, saved, hideApply }) => {
             {job?.applicationStatus ? (
               <StatusBadge status={job?.applicationStatus} />
             ) : (
-              !hideApply && (
+              !hideApply &&
+              user?.role !== "employer" && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

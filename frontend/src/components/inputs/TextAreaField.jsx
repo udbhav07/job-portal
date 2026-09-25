@@ -25,6 +25,7 @@ const TextAreaField = ({
         value={value}
         onChange={onChange}
         disabled={disabled}
+        rows={rows}
         className={`w-full px-3 py-2.5 border rounded-lg text-base transition-colors duration-200 resize-y disabled:bg-gray-50 disabled:text-gray-500 ${
           error
             ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"

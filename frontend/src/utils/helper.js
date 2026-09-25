@@ -88,16 +88,22 @@ export const validateAvatar = (file) => {
 //   }
 // });
 
-export const formatINR = (amount) =>
-  new Intl.NumberFormat("en-IN", {
+export const formatINR = (amount) => {
+  if (amount === null || amount === undefined || amount === "") return "—";
+  const value = Number(amount);
+  if (Number.isNaN(value)) return "—";
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0, // optional
-  }).format(amount);
+  }).format(value);
+};
 
-export const getInitials = (name) => {
-  return name
-    .split(" ")
+export const getInitials = (name = "") => {
+  return String(name)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
     .map((word) => word.charAt(0))
     .join("")
     .toUpperCase()

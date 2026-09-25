@@ -34,7 +34,7 @@ const ManageJobs = () => {
   const filteredAndSortedJobs = useMemo(() => {
     let filtered = jobs.filter((job) => {
       const matchesSearch =
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (job.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         job.company.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus =
@@ -65,6 +65,14 @@ const ManageJobs = () => {
   //pagination
   const totalPages = Math.ceil(filteredAndSortedJobs.length / itemsPerPage);
 
+  // go back to page 1 when the search changes, and never sit past the last page
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > Math.max(totalPages, 1)) setCurrentPage(Math.max(totalPages, 1));
+  }, [currentPage, totalPages]);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedJobs = filteredAndSortedJobs.slice(
     startIndex,
@@ -83,23 +91,28 @@ const ManageJobs = () => {
   // toggle status of a job
   const handleStatusChange = async (jobId) => {
     try {
-      const response = await axiosInstance.put(
-        API_PATHS.JOBS.TOGGLE_CLOSE(jobId)
-      );
+      await axiosInstance.put(API_PATHS.JOBS.TOGGLE_CLOSE(jobId));
       getPostedJobs(true);
     } catch (error) {
       console.error("Error toggling job status:", error);
+      toast.error("Could not update the job status");
     }
   };
 
   // delete a specific job
   const handleDeleteJob = async (jobId) => {
+    const confirmed = window.confirm(
+      "Delete this job? Its applications will be deleted too. This cannot be undone."
+    );
+    if (!confirmed) return;
+
     try {
       await axiosInstance.delete(API_PATHS.JOBS.DELETE_JOB(jobId));
-      setJobs(jobs.filter((job) => job.id !== jobId));
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
       toast.success("Job listing deleted successfully");
     } catch (error) {
       console.error("Error deleting job:", error);
+      toast.error("Could not delete the job, please try again");
     }
   };
 
@@ -148,11 +161,11 @@ const ManageJobs = () => {
     try {
       const response = await axiosInstance.get(API_PATHS.JOBS.GET_JOB_EMPLOYER);
 
-      if (response.status === 200 && response.data?.length > 0) {
+      if (response.status === 200 && Array.isArray(response.data)) {
         const formattedJob = response.data?.map((job) => ({
           id: job._id,
           title: job?.title,
-          company: job?.company?.name,
+          company: job?.company?.companyName || job?.company?.name || "",
           status: job?.isClosed ? "Closed" : "Active",
           applicants: job?.applicationCount || 0,
           datePosted: moment(job?.createdAt).format("DD-MM-YYYY"),

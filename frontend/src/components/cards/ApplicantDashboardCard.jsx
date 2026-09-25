@@ -1,4 +1,5 @@
 import { Clock } from "../../utils/icons";
+import { getInitials } from "../../utils/helper";
 
 const ApplicantDashboardCard = ({ applicant, position, time }) => {
   return (
@@ -6,15 +7,12 @@ const ApplicantDashboardCard = ({ applicant, position, time }) => {
       <div className="flex items-center space-x-4">
         <div className="h-10 w-10 bg-teal-400 rounded-xl flex items-center justify-center">
           <span className="text-white font-medium text-sm">
-            {applicant.name
-              .split(" ")
-              .map((n) => n[0].toUpperCase())
-              .join("")}
+            {getInitials(applicant?.name) || "?"}
           </span>
         </div>
         <div>
           <h4 className="text-[15px] font-medium text-gray-900">
-            {applicant.name}
+            {applicant?.name || "Deleted user"}
           </h4>
           <p className="text-sm text-gray-500">{position}</p>
         </div>
