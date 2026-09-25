@@ -1,6 +1,55 @@
+const User = require("../models/User");
 const Job = require("../models/Job");
 const Application = require("../models/Application");
 const SavedJob = require("../models/SavedJob");
+
+// escape user input so it is matched literally inside a RegExp
+const escapeRegex = (text) =>
+  String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// only these fields can be set by an employer; company/isClosed are server-controlled
+const JOB_FIELDS = [
+  "title",
+  "description",
+  "requirements",
+  "location",
+  "category",
+  "type",
+  "salaryMin",
+  "salaryMax",
+];
+
+const pickJobFields = (body = {}) => {
+  const data = {};
+  for (const field of JOB_FIELDS) {
+    if (body[field] !== undefined) data[field] = body[field];
+  }
+  for (const field of ["salaryMin", "salaryMax"]) {
+    if (data[field] === "" || data[field] === null) data[field] = undefined;
+    else if (data[field] !== undefined) data[field] = Number(data[field]);
+  }
+  return data;
+};
+
+const validateSalary = ({ salaryMin, salaryMax }) => {
+  if (
+    (salaryMin !== undefined && (Number.isNaN(salaryMin) || salaryMin < 0)) ||
+    (salaryMax !== undefined && (Number.isNaN(salaryMax) || salaryMax < 0))
+  ) {
+    return "Salary must be a positive number";
+  }
+  if (salaryMin !== undefined && salaryMax !== undefined && salaryMin > salaryMax) {
+    return "Maximum salary must be greater than minimum salary";
+  }
+  return null;
+};
+
+const sendError = (res, error) => {
+  if (error.name === "ValidationError" || error.name === "CastError") {
+    return res.status(400).json({ message: error.message });
+  }
+  res.status(500).json({ message: error.message });
+};
 
 // @desc create a new job (employer only)
 const createJob = async (req, res) => {
@@ -9,42 +58,63 @@ const createJob = async (req, res) => {
       return res.status(403).json({ message: "Only employer can post jobs" });
     }
 
-    const job = await Job.create({ ...req.body, company: req.user._id });
+    const data = pickJobFields(req.body);
+    const salaryError = validateSalary(data);
+    if (salaryError) return res.status(400).json({ message: salaryError });
+
+    const job = await Job.create({ ...data, company: req.user._id });
     res.status(201).json(job);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
 // @desc get all jobs
 const getJobs = async (req, res) => {
-  const { keyword, location, category, type, minSalary, maxSalary, userId } =
-    req.query;
-
-  const query = {
-    isClosed: false,
-    ...(keyword && { title: { $regex: keyword, $options: "i" } }),
-    ...(location && { location: { $regex: location, $options: "i" } }),
-    ...(category && { category }),
-    ...(type && { type }),
-  };
-
-  if (minSalary || maxSalary) {
-    query.$and = [];
-  }
-
-  if (minSalary) {
-    query.$and.push({ salaryMax: { $gte: Number(minSalary) } });
-  }
-  if (maxSalary) {
-    query.$and.push({ salaryMin: { $lte: Number(maxSalary) } });
-  }
-
   try {
-    const jobs = await Job.find(query).populate(
-      "company",
-      "name companyName companyLogo"
-    );
+    const { keyword, location, category, type, minSalary, maxSalary } =
+      req.query;
+    const userId = req.user?._id;
+
+    const query = {
+      isClosed: false,
+      ...(location && {
+        location: { $regex: escapeRegex(location), $options: "i" },
+      }),
+      ...(category && { category: String(category) }),
+      ...(type && { type: String(type) }),
+    };
+
+    // keyword matches the title, description, category or company name
+    if (keyword) {
+      const pattern = { $regex: escapeRegex(keyword), $options: "i" };
+      const companies = await User.find({
+        role: "employer",
+        $or: [{ companyName: pattern }, { name: pattern }],
+      }).select("_id");
+
+      query.$or = [
+        { title: pattern },
+        { description: pattern },
+        { category: pattern },
+        { company: { $in: companies.map((c) => c._id) } },
+      ];
+    }
+
+    const min = Number(minSalary);
+    const max = Number(maxSalary);
+    const salaryFilters = [];
+    if (minSalary && !Number.isNaN(min)) {
+      salaryFilters.push({ salaryMax: { $gte: min } });
+    }
+    if (maxSalary && !Number.isNaN(max)) {
+      salaryFilters.push({ salaryMin: { $lte: max } });
+    }
+    if (salaryFilters.length) query.$and = salaryFilters;
+
+    const jobs = await Job.find(query)
+      .sort({ createdAt: -1 })
+      .populate("company", "name companyName companyLogo");
 
     let savedJobIds = [];
     let appliedJobStatusMap = {};
@@ -76,10 +146,9 @@ const getJobs = async (req, res) => {
     });
     res.json(jobWithExtras);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
-
 // @desc get jobs for logged In user (employer can see posted jobs)
 const getJobsEmployer = async (req, res) => {
   try {
@@ -95,18 +164,19 @@ const getJobsEmployer = async (req, res) => {
       .populate("company", "name companyName companyLogo")
       .lean(); // lean() makes jobs plain js objects so we can add new fields
 
-    // count applications for each job
-    const jobWithApplicationCounts = await Promise.all(
-      jobs.map(async (job) => {
-        const applicationCount = await Application.countDocuments({
-          job: job._id,
-        });
-        return {
-          ...job,
-          applicationCount,
-        };
-      })
+    // count applications for all jobs in one query
+    const counts = await Application.aggregate([
+      { $match: { job: { $in: jobs.map((job) => job._id) } } },
+      { $group: { _id: "$job", count: { $sum: 1 } } },
+    ]);
+    const countByJob = Object.fromEntries(
+      counts.map((c) => [String(c._id), c.count])
     );
+
+    const jobWithApplicationCounts = jobs.map((job) => ({
+      ...job,
+      applicationCount: countByJob[String(job._id)] || 0,
+    }));
 
     res.json(jobWithApplicationCounts);
   } catch (error) {
@@ -117,7 +187,7 @@ const getJobsEmployer = async (req, res) => {
 // @desc get single job by ID
 const getJobById = async (req, res) => {
   try {
-    const { userId } = req.query;
+    const userId = req.user?._id;
 
     const job = await Job.findById(req.params.id).populate(
       "company",
@@ -147,7 +217,6 @@ const getJobById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 // @desc update job (employer only)
 const updateJob = async (req, res) => {
   try {
@@ -160,14 +229,20 @@ const updateJob = async (req, res) => {
         .json({ message: "Not authorized to update this job" });
     }
 
-    Object.assign(job, req.body);
+    const data = pickJobFields(req.body);
+    Object.assign(job, data);
+    const salaryError = validateSalary({
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+    });
+    if (salaryError) return res.status(400).json({ message: salaryError });
+
     const updated = await job.save();
-    res.json({ updated });
+    res.json(updated);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
-
 // @desc delete a job (employer only)
 const deleteJob = async (req, res) => {
   try {
@@ -180,13 +255,16 @@ const deleteJob = async (req, res) => {
         .json({ message: "Not authorized to delete this job" });
     }
 
-    await job.deleteOne();
+    await Promise.all([
+      Application.deleteMany({ job: job._id }),
+      SavedJob.deleteMany({ job: job._id }),
+      job.deleteOne(),
+    ]);
     res.json({ message: "Job deleted Successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 // @desc toggle close status for a job (employer only)
 const toggleCLoseJob = async (req, res) => {
   try {
@@ -202,7 +280,10 @@ const toggleCLoseJob = async (req, res) => {
     job.isClosed = !job.isClosed;
     await job.save();
 
-    res.json({ message: "Job marked as closed" });
+    res.json({
+      message: job.isClosed ? "Job marked as closed" : "Job reopened",
+      isClosed: job.isClosed,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

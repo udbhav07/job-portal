@@ -110,6 +110,9 @@ exports.getEmployerAnalytics = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: "", error: error.message });
+    res.status(500).json({
+      message: "Failed to load dashboard analytics",
+      error: error.message,
+    });
   }
 };

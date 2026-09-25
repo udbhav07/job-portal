@@ -1,8 +1,15 @@
 const SavedJob = require("../models/SavedJob");
+const Job = require("../models/Job");
 
 // @desc save a job
 const saveJob = async (req, res) => {
   try {
+    if (req.user.role !== "jobseeker") {
+      return res.status(403).json({ message: "Only jobseekers can save jobs" });
+    }
+    const job = await Job.exists({ _id: req.params.jobId });
+    if (!job) return res.status(404).json({ message: "Job not found" });
+
     const exists = await SavedJob.findOne({
       job: req.params.jobId,
       jobseeker: req.user._id,
@@ -16,6 +23,9 @@ const saveJob = async (req, res) => {
 
     res.status(201).json(saved);
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Job already saved" });
+    }
     res
       .status(500)
       .json({ message: "Failed to save job", error: error.message });
