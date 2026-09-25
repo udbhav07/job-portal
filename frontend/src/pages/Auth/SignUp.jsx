@@ -1,3 +1,4 @@
+import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User,
@@ -41,7 +42,7 @@ const SignUp = () => {
     success: false,
   });
 
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -89,7 +90,7 @@ const SignUp = () => {
         setFormState((prev) => ({
           ...prev,
           avatarPreview: e.target.result,
-          errors: { ...prev.avatar, avatar: "" },
+          errors: { ...prev.errors, avatar: "" },
         }));
       };
       render.readAsDataURL(file);
@@ -132,22 +133,16 @@ const SignUp = () => {
     setFormState((prev) => ({ ...prev, loading: true }));
 
     try {
-      // SignUP API Integrate
-      let avatarUrl = "";
-
-      // upload image if present
-      if (formData.avatar) {
-        const imageUploadRes = await uploadImage(formData.avatar);
-        avatarUrl = imageUploadRes.imageUrl || "";
-      }
-
+      // create the account first: uploads require a logged-in user
       const response = await axiosInstance.post(API_PATHS.AUTH.REGISTER, {
         name: formData.fullName,
         email: formData.email,
         password: formData.password,
         role: formData.role,
-        avatarUrl: avatarUrl || "",
       });
+
+      let userData = response.data;
+      const { token } = userData;
 
       // handle successful registration
       setFormState((prev) => ({
@@ -157,10 +152,25 @@ const SignUp = () => {
         errors: {},
       }));
 
-      const { token } = response.data;
-
       if (token) {
-        login(response.data, token);
+        login(userData, token);
+
+        // then upload the avatar (if any) and save it on the profile
+        if (formData.avatar) {
+          try {
+            const { imageUrl } = await uploadImage(formData.avatar);
+            if (imageUrl) {
+              await axiosInstance.put(API_PATHS.AUTH.UPDATE_PROFILE, {
+                avatar: imageUrl,
+              });
+              userData = { ...userData, avatar: imageUrl };
+              login(userData, token);
+            }
+          } catch (uploadError) {
+            // the account exists; the avatar can be added later from the profile
+            console.error("Avatar upload failed", uploadError);
+          }
+        }
 
         // redirect based on role
         setTimeout(() => {
@@ -182,6 +192,16 @@ const SignUp = () => {
     }
   };
 
+  // already logged in: go straight to the right home page
+  if (isAuthenticated && user && !formState.success) {
+    return (
+      <Navigate
+        to={user.role === "employer" ? "/employer-dashboard" : "/find-jobs"}
+        replace
+      />
+    );
+  }
+
   if (formState.success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -195,7 +215,7 @@ const SignUp = () => {
             Account Created!
           </h2>
           <p className="text-gray-600 mb-4">
-            Welcome to JopPortal, your account has been successfully created
+            Welcome to JobPortal, your account has been successfully created
           </p>
           <div className="animate-spin w-6 h-6 border-2 border-teal-700 border-t-transparent rounded-full mx-auto" />
           <p className="text-gray-500 mt-2">

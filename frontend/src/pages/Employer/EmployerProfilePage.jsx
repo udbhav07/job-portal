@@ -7,6 +7,7 @@ import uploadImage from "../../utils/uploadImage";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import EditProfileDetails from "./EditProfileDetails";
+import ProfileImage from "../../components/ProfileImage";
 
 const EmployerProfilePage = () => {
   const { user, updateUser } = useAuth();
@@ -32,7 +33,7 @@ const EmployerProfilePage = () => {
     }));
   };
 
-  const handleImageUpload = async (file, type) => {
+  const handleImageUpload = async (file, type, previousValue) => {
     setUploading((prev) => ({ ...prev, [type]: true }));
 
     try {
@@ -44,6 +45,10 @@ const EmployerProfilePage = () => {
       handleInputChange(field, avatarUrl);
     } catch (error) {
       console.error("Image upload failed:", error);
+      // drop the temporary preview so it can never be saved
+      const field = type === "avatar" ? "avatar" : "companyLogo";
+      handleInputChange(field, previousValue);
+      toast.error(error.response?.data?.message || "Upload failed, please try again");
     } finally {
       setUploading((prev) => ({ ...prev, [type]: false }));
     }
@@ -55,10 +60,11 @@ const EmployerProfilePage = () => {
       // create preview URL
       const previewUrl = URL.createObjectURL(file);
       const field = type === "avatar" ? "avatar" : "companyLogo";
+      const previousValue = formData[field] || "";
       handleInputChange(field, previewUrl);
 
       // upload image
-      handleImageUpload(file, type);
+      handleImageUpload(file, type, previousValue);
     }
   };
 
@@ -133,10 +139,11 @@ const EmployerProfilePage = () => {
                   </h2>
                   {/* Avatar and Name */}
                   <div className="flex items-center space-x-4">
-                    <img
-                      src={profileData.avatar || null}
+                    <ProfileImage
+                      src={profileData.avatar}
                       alt="Avatar"
-                      className="w-20 h-20 rounded-full object-cover border-4 border-teal-50"
+                      name={profileData.name}
+                      className="w-20 h-20 rounded-full border-4 border-teal-50"
                     />
                     <div>
                       <h3 className="text-lg font-semibold text-gray-800">
@@ -157,10 +164,11 @@ const EmployerProfilePage = () => {
                   </h2>
                   {/* Company name and logo */}
                   <div className="flex items-center space-x-4">
-                    <img
-                      src={profileData.companyLogo || null}
+                    <ProfileImage
+                      src={profileData.companyLogo}
                       alt="Company Logo"
-                      className="w-20 h-20 rounded-lg object-cover border-4 border-teal-50"
+                      variant="company"
+                      className="w-20 h-20 rounded-lg border-4 border-teal-50"
                     />
                     <div>
                       <h3 className="text-lg font-semibold text-gray-800">

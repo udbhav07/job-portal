@@ -1,6 +1,7 @@
 import React from "react";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { Save, X } from "../../utils/icons";
+import ProfileImage from "../../components/ProfileImage";
 
 const EditProfileDetails = ({
   formData,
@@ -35,13 +36,14 @@ const EditProfileDetails = ({
                     {/* Avatar upload */}
                     <div className="flex items-center space-x-4">
                       <div className="relative">
-                        <img
+                        <ProfileImage
                           src={formData?.avatar}
                           alt="Avatar"
-                          className="w-20 h-20 rounded-full object-cover border-4 border-gray-200"
+                          name={formData?.name}
+                          className="w-20 h-20 rounded-full border-4 border-gray-200"
                         />
                         {uploading?.avatar && (
-                          <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
                             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                           </div>
                         )}
@@ -50,7 +52,7 @@ const EditProfileDetails = ({
                         <span className="sr-only">Choose Avatar</span>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/png, image/jpeg"
                           onChange={(e) => handleImageChange(e, "avatar")}
                           className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-800 hover:file:bg-teal-100 transition-colors"
                         />
@@ -93,13 +95,14 @@ const EditProfileDetails = ({
                     {/* company Logo Upload */}
                     <div className="flex items-center space-x-4">
                       <div className="relative">
-                        <img
+                        <ProfileImage
                           src={formData.companyLogo}
                           alt="Company Logo"
-                          className="w-20 h-20 rounded-lg border-4 border-gray-200 "
+                          variant="company"
+                          className="w-20 h-20 rounded-lg border-4 border-gray-200"
                         />
                         {uploading.logo && (
-                          <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
                             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                           </div>
                         )}
@@ -109,7 +112,7 @@ const EditProfileDetails = ({
                           <span className="sr-only">Choose Company Logo</span>
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/png, image/jpeg"
                             onChange={(e) => handleImageChange(e, "logo")}
                             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 transition-colors"
                           />
