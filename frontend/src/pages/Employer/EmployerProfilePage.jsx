@@ -3,7 +3,7 @@ import { Building2, Mail, Edit3 } from "../../utils/icons";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 import { API_PATHS } from "../../utils/apiPaths";
-import uploadImage from "../../utils/uploadImage";
+import uploadFile from "../../utils/uploadFile";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import EditProfileDetails from "./EditProfileDetails";
@@ -37,8 +37,7 @@ const EmployerProfilePage = () => {
     setUploading((prev) => ({ ...prev, [type]: true }));
 
     try {
-      const imgUploadRes = await uploadImage(file);
-      const avatarUrl = imgUploadRes.imageUrl || "";
+      const avatarUrl = (await uploadFile(file, type)) || ""; // "avatar" or "logo"
 
       // update form data with new image url
       const field = type === "avatar" ? "avatar" : "companyLogo";

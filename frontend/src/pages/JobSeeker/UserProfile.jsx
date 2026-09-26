@@ -4,7 +4,8 @@ import { useAuth } from "../../context/AuthContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import toast from "react-hot-toast";
-import uploadImage from "../../utils/uploadImage";
+import uploadFile from "../../utils/uploadFile";
+import { openProtectedFile } from "../../utils/fileUrl";
 import Navbar from "../../components/layouts/Navbar";
 import ProfileImage from "../../components/ProfileImage";
 import { Link } from "react-router-dom";
@@ -33,8 +34,7 @@ const UserProfile = () => {
     setUploading((prev) => ({ ...prev, [type]: true }));
 
     try {
-      const imgUploadsRes = await uploadImage(file);
-      const avatarUrl = imgUploadsRes.imageUrl || "";
+      const avatarUrl = (await uploadFile(file, type)) || ""; // "avatar" or "resume"
       //update formdata with new url
       handleInputChange(type, avatarUrl);
 
@@ -93,6 +93,15 @@ const UserProfile = () => {
 
   const handleCancel = () => {
     setFormData({ ...profileData });
+  };
+
+  // resumes are private, so they are opened with the user's login token
+  const viewResume = async () => {
+    try {
+      await openProtectedFile(user?.resume);
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const deleteResume = async () => {
@@ -202,17 +211,13 @@ const UserProfile = () => {
                       Resume
                     </label>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-gray-600">
-                        Link:{" "}
-                        <a
-                          href={user?.resume}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-teal-600 underline cursor-pointer"
-                        >
-                          {user?.resume}
-                        </a>
-                      </p>
+                      <button
+                        type="button"
+                        onClick={viewResume}
+                        className="text-sm text-teal-700 underline cursor-pointer"
+                      >
+                        View resume ({user.resume.split("/").pop()})
+                      </button>
                       <button onClick={deleteResume} className="cursor-pointer">
                         <Trash2 className="w-5 h-5 text-red-500" />
                       </button>
@@ -227,7 +232,7 @@ const UserProfile = () => {
                       <span className="sr-only">Choose file</span>
                       <input
                         type="file"
-                        accept=".pdf,.png,.jpg,.jpeg"
+                        accept=".pdf,application/pdf"
                         onChange={(e) => handleImageChange(e, "resume")}
                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-800 hover:file:bg-teal-100 transition-colors"
                       />

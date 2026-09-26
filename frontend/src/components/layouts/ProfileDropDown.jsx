@@ -1,5 +1,6 @@
 import { ChevronDown } from "../../utils/icons";
 import { useNavigate } from "react-router-dom";
+import { getFileUrl } from "../../utils/fileUrl";
 
 const ProfileDropDown = ({
   isOpen,
@@ -20,7 +21,7 @@ const ProfileDropDown = ({
       >
         {avatar ? (
           <img
-            src={avatar}
+            src={getFileUrl(avatar)}
             alt="avatar"
             className="h-9 w-9 object-cover rounded-xl"
           />

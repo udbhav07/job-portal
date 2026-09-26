@@ -9,6 +9,7 @@ import moment from "moment";
 import StatusBadge from "../../components/StatusBadge";
 import toast from "react-hot-toast";
 import { formatINR } from "../../utils/helper";
+import { getFileUrl } from "../../utils/fileUrl";
 
 const JobDetails = () => {
   const { user } = useAuth();
@@ -90,7 +91,7 @@ const JobDetails = () => {
                 <div className="flex items-center gap-6 mb-6">
                   {jobDetails?.company?.companyLogo ? (
                     <img
-                      src={jobDetails?.company?.companyLogo}
+                      src={getFileUrl(jobDetails?.company?.companyLogo)}
                       alt="Company Logo"
                       className="h-20 w-20 object-cover rounded-2xl border-4 border-white/20 shadow-lg"
                     />

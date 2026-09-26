@@ -1,10 +1,13 @@
 import { Building2 } from "../utils/icons";
 import { getInitials } from "../utils/helper";
+import { getFileUrl } from "../utils/fileUrl";
 
 // Shows an uploaded image, or initials / a building icon when there is none
 const ProfileImage = ({ src, alt, name, className = "", variant = "person" }) => {
   if (src) {
-    return <img src={src} alt={alt} className={`object-cover ${className}`} />;
+    return (
+      <img src={getFileUrl(src)} alt={alt} className={`object-cover ${className}`} />
+    );
   }
 
   return (

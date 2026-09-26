@@ -35,7 +35,7 @@ export const API_PATHS = {
     UPDATE_STATUS: (id) => `/api/applications/${id}/status`,
   },
 
-  IMAGE: {
-    UPLOAD_IMAGE: "/api/auth/upload-image",
+  FILES: {
+    UPLOAD: "/api/files/upload", // ?type=avatar|logo|resume
   },
 };

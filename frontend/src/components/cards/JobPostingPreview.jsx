@@ -9,6 +9,7 @@ import {
 import { CATEGORIES, JOB_TYPES } from "../../utils/data";
 import { useAuth } from "../../context/AuthContext";
 import { formatINR } from "../../utils/helper";
+import { getFileUrl } from "../../utils/fileUrl";
 
 const JobPostingPreview = ({ formData, setIsPreview }) => {
   const { user } = useAuth();
@@ -62,7 +63,7 @@ const JobPostingPreview = ({ formData, setIsPreview }) => {
 
                   {user?.companyLogo ? (
                     <img
-                      src={user.companyLogo}
+                      src={getFileUrl(user.companyLogo)}
                       alt="company logo"
                       className="h-16 md:h-20 w-16 md:w-20 object-cover rounded-2xl border-4 border-white/20 shadow-lg"
                     />

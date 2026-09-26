@@ -20,7 +20,7 @@ import {
   validateEmail,
   validatePassword,
 } from "../../utils/helper";
-import uploadImage from "../../utils/uploadImage";
+import uploadFile from "../../utils/uploadFile";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { useAuth } from "../../context/AuthContext";
@@ -158,12 +158,12 @@ const SignUp = () => {
         // then upload the avatar (if any) and save it on the profile
         if (formData.avatar) {
           try {
-            const { imageUrl } = await uploadImage(formData.avatar);
-            if (imageUrl) {
+            const avatarPath = await uploadFile(formData.avatar, "avatar");
+            if (avatarPath) {
               await axiosInstance.put(API_PATHS.AUTH.UPDATE_PROFILE, {
-                avatar: imageUrl,
+                avatar: avatarPath,
               });
-              userData = { ...userData, avatar: imageUrl };
+              userData = { ...userData, avatar: avatarPath };
               login(userData, token);
             }
           } catch (uploadError) {

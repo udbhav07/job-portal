@@ -1,8 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 const connectDB = require("./config/db");
+const multer = require("multer");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -10,6 +10,8 @@ const jobsRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const savedJobsRoutes = require("./routes/savedJobsRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const fileRoutes = require("./routes/fileRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 const app = express();
 
@@ -17,7 +19,7 @@ const app = express();
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -35,9 +37,23 @@ app.use("/api/jobs", jobsRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/save-jobs", savedJobsRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/files", fileRoutes);
 
-// serve uploads folder
-app.use("/uploads", express.static(path.join(__dirname, "uploads"), {}));
+// uploaded files: public avatars/logos, protected resumes
+app.use("/uploads", uploadRoutes);
+
+// return upload and other unhandled errors as JSON
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError || err.message?.startsWith("Only ")) {
+    return res.status(400).json({ message: err.message });
+  }
+  const status = err.status || err.statusCode;
+  if (status && status < 500) {
+    return res.status(status).json({ message: err.message || "Request failed" });
+  }
+  console.error(err);
+  res.status(500).json({ message: "Something went wrong" });
+});
 
 // start server
 const PORT = process.env.PORT || 5000;

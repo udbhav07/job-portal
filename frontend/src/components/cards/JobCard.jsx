@@ -2,6 +2,7 @@ import { Bookmark, Building, Building2, Calendar, MapPin } from "../../utils/ico
 import { useAuth } from "../../context/AuthContext";
 import moment from "moment";
 import StatusBadge from "../../components/StatusBadge";
+import { getFileUrl } from "../../utils/fileUrl";
 
 const JobCard = ({ job, onClick, onToggleSave, onApply, saved, hideApply }) => {
   const { user } = useAuth();
@@ -60,7 +61,7 @@ const JobCard = ({ job, onClick, onToggleSave, onApply, saved, hideApply }) => {
         <div className="flex items-start gap-4">
           {job?.company?.companyLogo ? (
             <img
-              src={job?.company?.companyLogo}
+              src={getFileUrl(job?.company?.companyLogo)}
               alt="Company Logo"
               className="w-14 h-14 object-cover rounded-xl border-4 border-white/20 shadow-lg"
             />

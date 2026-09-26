@@ -17,6 +17,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import ApplicantProfilePreview from "../../components/cards/ApplicantProfilePreview";
 import toast from "react-hot-toast";
+import { getFileUrl, openProtectedFile } from "../../utils/fileUrl";
 
 const ApplicationViewer = () => {
   const location = useLocation();
@@ -65,12 +66,17 @@ const ApplicationViewer = () => {
     }, {});
   }, [applications]);
 
-  const handleDownloadResume = (resumeUrl) => {
-    if (!resumeUrl) {
+  // resumes are private: fetched with the employer's login, then opened
+  const handleDownloadResume = async (resumePath) => {
+    if (!resumePath) {
       toast.error("This applicant hasn't uploaded a resume");
       return;
     }
-    window.open(resumeUrl, "_blank", "noopener,noreferrer");
+    try {
+      await openProtectedFile(resumePath);
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   return (
@@ -165,7 +171,7 @@ const ApplicationViewer = () => {
                               <div className="flex-shrink-0">
                                 {application.applicant.avatar ? (
                                   <img
-                                    src={application.applicant.avatar}
+                                    src={getFileUrl(application.applicant.avatar)}
                                     alt={application.applicant.name}
                                     className="h-12 w-12 rounded-full object-cover"
                                   />

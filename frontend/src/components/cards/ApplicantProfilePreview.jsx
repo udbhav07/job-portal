@@ -6,6 +6,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import moment from "moment";
 import toast from "react-hot-toast";
 import StatusBadge from "../StatusBadge";
+import { getFileUrl } from "../../utils/fileUrl";
 
 const statusOptions = ["Applied", "In Review", "Rejected", "Accepted"];
 
@@ -66,7 +67,7 @@ const ApplicantProfilePreview = ({
           <div className="text-center mb-6">
             {selectedApplicant.applicant.avatar ? (
               <img
-                src={selectedApplicant.applicant.avatar}
+                src={getFileUrl(selectedApplicant.applicant.avatar)}
                 alt={selectedApplicant.applicant.name}
                 className="h-20 w-20 rounded-full object-cover mx-auto"
               />
