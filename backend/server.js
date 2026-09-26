@@ -50,6 +50,10 @@ scheduleUploadCleanup();
 
 //Middleware
 app.use(express.json());
+app.get("/api/health",(req,res)=>{
+  res.json({status:"ok" , uptime:Math.round(process.uptime())});
+});
+
 
 // routes
 app.use("/api/auth", authRoutes);
