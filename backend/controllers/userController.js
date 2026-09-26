@@ -1,9 +1,10 @@
 const User = require("../models/User");
 const Application = require("../models/Application");
-const { UPLOAD_TYPES } = require("../config/upload");
+const { UPLOAD_TYPES, UNSAVED_UPLOAD_TTL_MS } = require("../config/upload");
 const {
   normalizeStoredPath,
   isOwnedBy,
+  uploadedAt,
   deleteStoredFile,
 } = require("../utils/fileStorage");
 
@@ -64,6 +65,12 @@ const updateProfile = async (req, res) => {
 
       if (!isOwnedBy(incoming, type, user._id)) {
         return res.status(400).json({ message: `Invalid ${label} file` });
+      }
+      // unsaved uploads this old are deleted by the cleanup job
+      if (Date.now() - (uploadedAt(incoming) || 0) > UNSAVED_UPLOAD_TTL_MS) {
+        return res.status(400).json({
+          message: `This ${label} upload has expired, please upload it again`,
+        });
       }
 
       replacedFiles.push({ type, path: current });

@@ -1,23 +1,26 @@
-// Small in-memory rate limiter (per IP). Enough for a single server instance;
-// use a shared store such as Redis if the backend ever runs on several servers.
-const rateLimit = ({ windowMs, max, message }) => {
-  const hits = new Map(); // ip -> { count, resetAt }
+const ipKey = (req) => req.ip || req.socket.remoteAddress || "unknown";
+
+// Small in-memory rate limiter (per IP by default, or per `key(req)`). Enough for
+// a single server instance; use a shared store such as Redis if the backend ever
+// runs on several servers.
+const rateLimit = ({ windowMs, max, message, key = ipKey }) => {
+  const hits = new Map(); // key -> { count, resetAt }
 
   // drop expired entries so the map can't grow forever
   setInterval(() => {
     const now = Date.now();
-    for (const [ip, entry] of hits) {
-      if (entry.resetAt <= now) hits.delete(ip);
+    for (const [id, entry] of hits) {
+      if (entry.resetAt <= now) hits.delete(id);
     }
   }, windowMs).unref();
 
   return (req, res, next) => {
     const now = Date.now();
-    const ip = req.ip || req.socket.remoteAddress || "unknown";
-    const entry = hits.get(ip);
+    const id = key(req);
+    const entry = hits.get(id);
 
     if (!entry || entry.resetAt <= now) {
-      hits.set(ip, { count: 1, resetAt: now + windowMs });
+      hits.set(id, { count: 1, resetAt: now + windowMs });
       return next();
     }
 

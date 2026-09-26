@@ -73,6 +73,27 @@ export const validateAvatar = (file) => {
   return "";
 };
 
+// same rules the backend applies in POST /api/files/upload
+const UPLOAD_RULES = {
+  avatar: { types: ["image/jpeg", "image/jpg", "image/png"], formats: "PNG or JPEG", label: "profile picture" },
+  logo: { types: ["image/jpeg", "image/jpg", "image/png"], formats: "PNG or JPEG", label: "company logo" },
+  resume: { types: ["application/pdf"], formats: "PDF", label: "resume" },
+};
+const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
+
+// error message for a file that can't be uploaded as `type`, or "" when it's fine
+export const validateUploadFile = (file, type) => {
+  const rule = UPLOAD_RULES[type];
+  if (!file || !rule) return "Please choose a file";
+  if (!rule.types.includes(file.type)) {
+    return `Only ${rule.formats} files are allowed for a ${rule.label}`;
+  }
+  if (file.size > MAX_UPLOAD_SIZE) {
+    return `The ${rule.label} must be smaller than 5MB`;
+  }
+  return "";
+};
+
 // remove empty errors
 // Object.keys(errors).forEach((key) => {
 //   // if (!errors[key] ) delete errors[key];

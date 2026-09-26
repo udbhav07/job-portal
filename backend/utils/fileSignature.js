@@ -10,6 +10,19 @@ const SIGNATURES = {
 
 const HEADER_LENGTH = 8;
 
+// true when the bytes start with the signature of the claimed type
+const bufferMatchesSignature = (buffer, mimeType) => {
+  const signatures = SIGNATURES[mimeType];
+  if (!signatures || !buffer) return false;
+
+  return signatures.some(
+    (signature) =>
+      buffer.length >= signature.length &&
+      signature.every((byte, index) => buffer[index] === byte)
+  );
+};
+
+
 const readHeader = async (filePath) => {
   const handle = await fs.promises.open(filePath, "r");
   try {
@@ -21,25 +34,18 @@ const readHeader = async (filePath) => {
   }
 };
 
-// true when the file's actual content matches the type the browser claimed
-const matchesSignature = async (filePath, mimeType) => {
-  const signatures = SIGNATURES[mimeType];
-  if (!signatures) return false;
+// same check for a file on disk (used by the scripts)
+const matchesSignature = async (filePath, mimeType) =>
+  bufferMatchesSignature(await readHeader(filePath), mimeType);
 
+// detect the real type of a file on disk from its content alone
+const detectMimeType = async (filePath) => {
   const header = await readHeader(filePath);
-  return signatures.some(
-    (signature) =>
-      header.length >= signature.length &&
-      signature.every((byte, index) => header[index] === byte)
+  return (
+    ["image/png", "image/jpeg", "application/pdf"].find((mimeType) =>
+      bufferMatchesSignature(header, mimeType)
+    ) || null
   );
 };
 
-// detect the real type from content alone (used by the migration script)
-const detectMimeType = async (filePath) => {
-  for (const mimeType of ["image/png", "image/jpeg", "application/pdf"]) {
-    if (await matchesSignature(filePath, mimeType)) return mimeType;
-  }
-  return null;
-};
-
-module.exports = { matchesSignature, detectMimeType };
+module.exports = { bufferMatchesSignature, matchesSignature, detectMimeType };

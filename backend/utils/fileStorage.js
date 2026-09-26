@@ -1,6 +1,14 @@
 const fs = require("fs");
 const path = require("path");
 const {
+  PutObjectCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectCommand,
+} = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const { s3, BUCKET } = require("../config/storage");
+const {
   UPLOAD_DIR,
   UPLOAD_URL_PREFIX,
   UPLOAD_TYPES,
@@ -35,13 +43,10 @@ const parseStoredPath = (storedPath) => {
   return { type, folder, filename };
 };
 
-// absolute path on disk, guaranteed to be inside the uploads folder
-const resolveStoredPath = (storedPath) => {
+// "/uploads/avatars/avatar-1-2.png" -> "avatars/avatar-1-2.png" (key in the bucket)
+const toObjectKey = (storedPath) => {
   const parsed = parseStoredPath(storedPath);
-  if (!parsed) return null;
-
-  const filePath = path.join(UPLOAD_DIR, parsed.folder, parsed.filename);
-  return filePath.startsWith(UPLOAD_DIR + path.sep) ? filePath : null;
+  return parsed ? `${parsed.folder}/${parsed.filename}` : null;
 };
 
 // files are named "<type>-<userId>-<timestamp>.<ext>"
@@ -54,16 +59,95 @@ const isOwnedBy = (storedPath, type, userId) => {
   );
 };
 
-const deleteStoredFile = async (storedPath) => {
-  const filePath = resolveStoredPath(storedPath);
-  if (!filePath) return false;
+// when the file was uploaded, from the timestamp in its name (null if unknown)
+const uploadedAt = (storedPath) => {
+  const parsed = parseStoredPath(storedPath);
+  const match = parsed?.filename.match(/-(\d{13})\.[a-z]+$/);
+  return match ? Number(match[1]) : null;
+};
+
+// upload a file's bytes to the bucket
+const saveFile = async (storedPath, buffer, contentType) => {
+  const Key = toObjectKey(storedPath);
+  if (!Key) throw new Error(`Invalid file path: ${storedPath}`);
+
+  await s3.send(
+    new PutObjectCommand({ Bucket: BUCKET, Key, Body: buffer, ContentType: contentType })
+  );
+};
+
+// temporary link to a private file; expiresIn is in seconds
+const getSignedFileUrl = async (storedPath, expiresIn) => {
+  const Key = toObjectKey(storedPath);
+  if (!Key) return null;
+
+  return getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key }), {
+    expiresIn,
+  });
+};
+
+// read a file from the bucket; null when it doesn't exist
+const getFileStream = async (storedPath) => {
+  const Key = toObjectKey(storedPath);
+  if (!Key) return null;
+
   try {
-    await fs.promises.unlink(filePath);
-    return true;
+    const object = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key }));
+    return {
+      body: object.Body,
+      contentType: object.ContentType,
+      contentLength: object.ContentLength,
+    };
   } catch (error) {
-    if (error.code === "ENOENT") return false;
+    if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) {
+      return null;
+    }
     throw error;
   }
+};
+
+const deleteStoredFile = async (storedPath) => {
+  const Key = toObjectKey(storedPath);
+  if (!Key) return false;
+
+  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key }));
+  return true;
+};
+
+// every upload in the bucket as { storedPath, lastModified }; other keys are skipped
+const listStoredFiles = async () => {
+  const files = [];
+  for (const { folder } of Object.values(UPLOAD_TYPES)) {
+    let ContinuationToken;
+    do {
+      const page = await s3.send(
+        new ListObjectsV2Command({
+          Bucket: BUCKET,
+          Prefix: `${folder}/`,
+          ContinuationToken,
+        })
+      );
+      for (const object of page.Contents || []) {
+        const storedPath = `${UPLOAD_URL_PREFIX}/${object.Key}`;
+        if (parseStoredPath(storedPath)) {
+          files.push({ storedPath, lastModified: object.LastModified });
+        }
+      }
+      ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (ContinuationToken);
+  }
+  return files;
+};
+
+// ---- local uploads folder: only used by the migration scripts ----
+
+// absolute path on disk, guaranteed to be inside the uploads folder
+const toLocalPath = (storedPath) => {
+  const parsed = parseStoredPath(storedPath);
+  if (!parsed) return null;
+
+  const filePath = path.join(UPLOAD_DIR, parsed.folder, parsed.filename);
+  return filePath.startsWith(UPLOAD_DIR + path.sep) ? filePath : null;
 };
 
 const ensureUploadFolders = () => {
@@ -76,8 +160,14 @@ module.exports = {
   toStoredPath,
   normalizeStoredPath,
   parseStoredPath,
-  resolveStoredPath,
+  toObjectKey,
   isOwnedBy,
+  uploadedAt,
+  saveFile,
+  getSignedFileUrl,
+  getFileStream,
   deleteStoredFile,
+  listStoredFiles,
+  toLocalPath,
   ensureUploadFolders,
 };

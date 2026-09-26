@@ -75,6 +75,7 @@ const SignUp = () => {
     if (file) {
       const error = validateAvatar(file);
       if (error) {
+        e.target.value = ""; // clear the wrong file so it isn't kept selected
         setFormState((prev) => ({
           ...prev,
           errors: { ...prev.errors, avatar: error },

@@ -4,6 +4,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 import { API_PATHS } from "../../utils/apiPaths";
 import uploadFile from "../../utils/uploadFile";
+import { validateUploadFile } from "../../utils/helper";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import EditProfileDetails from "./EditProfileDetails";
@@ -33,7 +34,7 @@ const EmployerProfilePage = () => {
     }));
   };
 
-  const handleImageUpload = async (file, type, previousValue) => {
+  const handleImageUpload = async (file, type, previousValue, input) => {
     setUploading((prev) => ({ ...prev, [type]: true }));
 
     try {
@@ -47,6 +48,7 @@ const EmployerProfilePage = () => {
       // drop the temporary preview so it can never be saved
       const field = type === "avatar" ? "avatar" : "companyLogo";
       handleInputChange(field, previousValue);
+      input.value = ""; // don't keep showing the rejected file's name
       toast.error(error.response?.data?.message || "Upload failed, please try again");
     } finally {
       setUploading((prev) => ({ ...prev, [type]: false }));
@@ -54,8 +56,16 @@ const EmployerProfilePage = () => {
   };
 
   const handleImageChange = (e, type) => {
-    const file = e.target.files[0];
+    const input = e.target;
+    const file = input.files[0];
     if (file) {
+      const error = validateUploadFile(file, type);
+      if (error) {
+        input.value = ""; // clear the wrong file so it isn't shown as selected
+        toast.error(error);
+        return;
+      }
+
       // create preview URL
       const previewUrl = URL.createObjectURL(file);
       const field = type === "avatar" ? "avatar" : "companyLogo";
@@ -63,7 +73,7 @@ const EmployerProfilePage = () => {
       handleInputChange(field, previewUrl);
 
       // upload image
-      handleImageUpload(file, type, previousValue);
+      handleImageUpload(file, type, previousValue, input);
     }
   };
 

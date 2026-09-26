@@ -6,6 +6,7 @@ import { API_PATHS } from "../../utils/apiPaths";
 import toast from "react-hot-toast";
 import uploadFile from "../../utils/uploadFile";
 import { openProtectedFile } from "../../utils/fileUrl";
+import { validateUploadFile } from "../../utils/helper";
 import Navbar from "../../components/layouts/Navbar";
 import ProfileImage from "../../components/ProfileImage";
 import { Link } from "react-router-dom";
@@ -30,7 +31,7 @@ const UserProfile = () => {
     }));
   };
 
-  const handleImageUpload = async (file, type, previousValue) => {
+  const handleImageUpload = async (file, type, previousValue, input) => {
     setUploading((prev) => ({ ...prev, [type]: true }));
 
     try {
@@ -50,6 +51,7 @@ const UserProfile = () => {
       console.error("Image Upload Failed:", error);
       // drop the temporary preview so it can never be saved
       handleInputChange(type, previousValue);
+      input.value = ""; // don't keep showing the rejected file's name
       toast.error(error.response?.data?.message || "Upload failed, please try again");
     } finally {
       setUploading((prev) => ({ ...prev, [type]: false }));
@@ -57,8 +59,16 @@ const UserProfile = () => {
   };
 
   const handleImageChange = (e, type) => {
-    const file = e.target.files[0];
+    const input = e.target;
+    const file = input.files[0];
     if (file) {
+      const error = validateUploadFile(file, type);
+      if (error) {
+        input.value = ""; // clear the wrong file so it isn't shown as selected
+        toast.error(error);
+        return;
+      }
+
       const previousValue = formData[type] || "";
 
       // create preview profile
@@ -66,7 +76,7 @@ const UserProfile = () => {
       handleInputChange(type, previewUrl);
 
       // upload image
-      handleImageUpload(file, type, previousValue);
+      handleImageUpload(file, type, previousValue, input);
     }
   };
 

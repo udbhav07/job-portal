@@ -8,6 +8,10 @@ const UPLOAD_URL_PREFIX = "/uploads";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+// an upload must be saved to the profile within this time; after that it is
+// treated as abandoned and the cleanup job deletes it
+const UNSAVED_UPLOAD_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 const IMAGE_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 const PDF_MIME_TYPES = ["application/pdf"];
 
@@ -49,6 +53,7 @@ module.exports = {
   UPLOAD_DIR,
   UPLOAD_URL_PREFIX,
   MAX_FILE_SIZE,
+  UNSAVED_UPLOAD_TTL_MS,
   UPLOAD_TYPES,
   EXTENSIONS,
 };
