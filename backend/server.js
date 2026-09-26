@@ -18,7 +18,11 @@ const app = express();
 // middleware to handle cors
 app.use(
   cors({
-    origin: "*",
+    // comma-separated list of allowed frontends, e.g. "https://myapp.com";
+    // any origin is allowed when CLIENT_URL is not set (local development)
+    origin: process.env.CLIENT_URL
+      ? process.env.CLIENT_URL.split(",").map((url) => url.trim())
+      : "*",
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })

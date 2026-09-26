@@ -1,4 +1,13 @@
-import { useContext, createContext, useState, useEffect } from "react";
+import {
+  useContext,
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import axiosInstance from "../utils/axiosInstance";
+import { API_PATHS } from "../utils/apiPaths";
 
 const AuthContext = createContext();
 
@@ -11,83 +20,100 @@ export const useAuth = () => {
   return context;
 };
 
+const readStoredUser = () => {
+  try {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch (e) {
+    console.error("Error parsing stored user", e);
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    // initialize synchronously from localStorage
-    try {
-      const storedUser = localStorage.getItem("user");
-      return storedUser ? JSON.parse(storedUser) : null;
-    } catch (e) {
-      console.error("Error parsing stored user", e);
-      return null;
-    }
-  });
-
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const token = localStorage.getItem("token");
-    return !!token;
-  });
-
+  // initialize synchronously from localStorage so the first render is correct
+  const [user, setUser] = useState(readStoredUser);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => !!localStorage.getItem("token")
+  );
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuthStatus();
+  // forget the session locally, without navigating anywhere
+  const clearSession = useCallback(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    setUser(null);
+    setIsAuthenticated(false);
   }, []);
 
-  const checkAuthStatus = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
+  const logout = useCallback(() => {
+    clearSession();
+    window.location.href = "/";
+  }, [clearSession]);
 
-      if (token && userStr) {
-        const userData = JSON.parse(userStr);
-        setUser(userData);
-        setIsAuthenticated(true);
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-      }
+  // confirm the saved token with the server and refresh the user's details
+  const checkAuthStatus = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      clearSession();
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE, {
+        skipAuthRedirect: true,
+      });
+      const freshUser = { ...readStoredUser(), ...response.data };
+      localStorage.setItem("user", JSON.stringify(freshUser));
+      setUser(freshUser);
+      setIsAuthenticated(true);
     } catch (error) {
-      console.error("Auth check Failed", error);
-      logout();
+      if (error.response?.status === 401) {
+        // expired or invalid token
+        clearSession();
+      } else {
+        // server unreachable: keep the saved session for now
+        console.error("Auth check failed", error);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [clearSession]);
 
-  const login = (userData, token) => {
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
+  const login = useCallback((userData, token) => {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userData));
 
     setUser(userData);
     setIsAuthenticated(true);
-  };
+  }, []);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+  const updateUser = useCallback((updatedUserData) => {
+    setUser((prev) => {
+      const newUserData = { ...prev, ...updatedUserData };
+      localStorage.setItem("user", JSON.stringify(newUserData));
+      return newUserData;
+    });
+  }, []);
 
-    setUser(null);
-    setIsAuthenticated(false);
-    window.location.href = "/";
-  };
-
-  const updateUser = (updatedUserData) => {
-    const newUserData = { ...user, ...updatedUserData };
-    localStorage.setItem("user", JSON.stringify(newUserData));
-    setUser(newUserData);
-  };
-
-  const value = {
-    user,
-    loading,
-    isAuthenticated,
-    login,
-    logout,
-    updateUser,
-    checkAuthStatus,
-  };
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      isAuthenticated,
+      login,
+      logout,
+      updateUser,
+      checkAuthStatus,
+    }),
+    [user, loading, isAuthenticated, login, logout, updateUser, checkAuthStatus]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

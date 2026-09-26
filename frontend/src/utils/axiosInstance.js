@@ -38,8 +38,13 @@ axiosInstance.interceptors.response.use(
         url.includes(API_PATHS.AUTH.REGISTER);
 
       // session expired or invalid: clear it and send the user to login.
-      // login/register 401s are wrong credentials, so let the page show them
-      if (error.response.status === 401 && !isAuthRequest) {
+      // login/register 401s are wrong credentials, so let the page show them;
+      // requests marked skipAuthRedirect handle the 401 themselves
+      if (
+        error.response.status === 401 &&
+        !isAuthRequest &&
+        !error.config?.skipAuthRedirect
+      ) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         if (window.location.pathname !== "/login") {
